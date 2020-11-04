@@ -8,30 +8,58 @@ import { PokemonApiService } from '../servicos/pokemon-api.service';
 })
 export class HomePage {
 
-  public listarPokemons: any = [];
+  public listarPokemon = [];
+  public listarExibir = [];
   public pagina = 1;
-  public totalPaginas = 105;
-  constructor(private pokemonService: PokemonApiService) { }
+  public totalPaginas = 0;
 
-  ionViewWillEnter() {
-    this.buscarPokemons(1);
+  public next: string;
+  public previous: string;
+
+  constructor(private pokemonService: PokemonApiService) { 
+    this.buscarPokemons();
   }
-  public buscarPokemons(pagina: number) {
-    if (pagina <= 0) {
-      pagina = 1;
-    }
-    this.pagina = pagina;
 
-    this.pokemonService.buscarTodos(pagina).subscribe(dados => { //busca todos os pokemons da lista da Api
-      this.listarPokemons = [];
-      this.totalPaginas = dados['count'];
+
+  public async buscarPokemons() {
+    await this.pokemonService.buscarTodos().subscribe(dados => {
+      this.listarPokemon = [];
+      this.totalPaginas = dados['count'] / 10;
+
+      this.previous = dados['previous'];
+      this.next = dados['next'] ;
+
       let listaApi = dados['results'];
+
       for (let item of listaApi) {
         this.pokemonService.buscarPokemonPorId(item.url).subscribe(dadosPokemon => {
-          this.listarPokemons.push(dadosPokemon);
+          this.listarPokemon.push(dadosPokemon);
+
+          this.ordenarLista();
         });
       }
     });
+  }
+
+  private ordenarLista() {
+    this.listarPokemon.sort((a, b) => {
+      if (a.id > b.id) {
+        return 1;
+      }
+      if (a.id < b.id) {
+        return -1;
+      }
+      return 0;
+    });
+    this.listarExibir = this.listarPokemon;
+  }
+
+  public paginacao(url, movimento) {
+    this.pagina = this.pagina + movimento;
+
+    this.pokemonService.url = url;
+
+    this.buscarPokemons();
   }
 
 
